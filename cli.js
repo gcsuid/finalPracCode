@@ -3,7 +3,7 @@ const fs = require('fs');
 const mongoose = require('mongoose');
 const readline = require('readline/promises');
 const { stdin: input, stdout: output } = require('process');
-const ProblemLog = require('./models/ProblemLog');
+const problemStore = require('./services/problemStore');
 const problemMetadataService = require('./services/problemMetadataService');
 
 dotenv.config();
@@ -64,11 +64,15 @@ async function promptForProblem() {
 async function main() {
   const mongoUri = process.env.MONGO_URI;
   if (!mongoUri) {
-    throw new Error('MONGO_URI is missing in .env');
+    console.log('MONGO_URI is missing. Using db.json storage.');
+  } else {
+    try {
+      await mongoose.connect(mongoUri);
+      console.log('MongoDB Connected');
+    } catch (error) {
+      console.log('MongoDB unavailable. Using db.json storage.');
+    }
   }
-
-  await mongoose.connect(mongoUri);
-  console.log('MongoDB Connected');
 
   try {
     const inputData = await promptForProblem();
@@ -77,7 +81,7 @@ async function main() {
       questionName: inputData.questionName
     });
 
-    const savedLog = await ProblemLog.create({
+    const savedLog = await problemStore.createProblemLog({
       questionNumber: validated.questionNumber,
       questionName: validated.questionName,
       titleSlug: validated.titleSlug,
@@ -87,7 +91,7 @@ async function main() {
     });
 
     console.log('');
-    console.log('Saved problem log to MongoDB');
+    console.log(`Saved problem log to ${problemStore.getStorageMode() === 'mongo' ? 'MongoDB' : 'db.json'}`);
     console.log(JSON.stringify({
       id: savedLog.id,
       questionNumber: savedLog.questionNumber,
@@ -99,8 +103,10 @@ async function main() {
       createdAt: savedLog.createdAt
     }, null, 2));
   } finally {
-    await mongoose.disconnect();
-    console.log('MongoDB Disconnected');
+    if (mongoose.connection.readyState === 1) {
+      await mongoose.disconnect();
+      console.log('MongoDB Disconnected');
+    }
   }
 }
 

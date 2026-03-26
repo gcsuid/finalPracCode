@@ -1,5 +1,5 @@
-const ProblemLog = require('../models/ProblemLog');
 const problemMetadataService = require('../services/problemMetadataService');
+const problemStore = require('../services/problemStore');
 
 exports.logProblem = async (req, res) => {
   const { questionNumber, questionName, approach } = req.body;
@@ -16,16 +16,16 @@ exports.logProblem = async (req, res) => {
       questionName
     });
 
-    const newProblemLog = new ProblemLog({
+    const payload = {
       questionNumber: Number(problemDetails.questionNumber),
       questionName: problemDetails.questionName,
       titleSlug: problemDetails.titleSlug,
       approach,
       source: problemDetails.source || 'leetcode',
       submittedFrom: 'api'
-    });
+    };
 
-    const savedLog = await newProblemLog.save();
+    const savedLog = await problemStore.createProblemLog(payload);
 
     res.status(201).json(savedLog);
   } catch (error) {
@@ -37,7 +37,7 @@ exports.logProblem = async (req, res) => {
 
 exports.listProblems = async (req, res) => {
   try {
-    const logs = await ProblemLog.find().sort({ createdAt: -1 });
+    const logs = await problemStore.listProblemLogs();
     res.json(logs);
   } catch (error) {
     console.error('Error in listProblems controller:', error.message);
@@ -47,7 +47,7 @@ exports.listProblems = async (req, res) => {
 
 exports.getProblemLog = async (req, res) => {
   try {
-    const log = await ProblemLog.findById(req.params.id);
+    const log = await problemStore.getProblemLogById(req.params.id);
 
     if (!log) {
       return res.status(404).json({ msg: 'Problem log not found' });

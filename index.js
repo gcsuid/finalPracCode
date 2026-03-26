@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const problemRoutes = require('./routes/problemRoutes');
+const problemStore = require('./services/problemStore');
 
 // Load env vars
 dotenv.config();
@@ -33,9 +34,13 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/leetcode-t
 mongoose.connect(MONGO_URI)
   .then(() => {
     console.log('MongoDB Connected');
-    app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
   })
   .catch(err => {
-    console.error('MongoDB connection error:', err);
-    process.exit(1);
+    console.error('MongoDB connection error. Falling back to db.json:', err.message);
+  })
+  .finally(() => {
+    app.listen(PORT, () => {
+      console.log(`Server started on port ${PORT}`);
+      console.log(`Storage mode: ${problemStore.getStorageMode()}`);
+    });
   });
