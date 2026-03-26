@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeetCode Logger</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Vanilla JS + MongoDB Atlas</p>
+        <h1>Log LeetCode problems directly into your backend.</h1>
+        <p class="hero-text">
+          This screen uses the currently implemented no-auth API. Enter a problem number,
+          the exact LeetCode title, and your approach. The backend validates the number/name pair
+          and stores the log in MongoDB.
+        </p>
+      </div>
+      <div class="hero-card">
+        <div class="stat-label">Backend status</div>
+        <div class="stat-value" id="healthStatus">Checking...</div>
+        <p class="stat-caption">Health endpoint and problem list are loaded from the running Node server.</p>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel form-panel">
+        <div class="panel-header">
+          <p class="panel-kicker">Create log</p>
+          <h2>Add a problem</h2>
+        </div>
+
+        <form id="problemForm" class="problem-form">
+          <label class="field">
+            <span>Question number</span>
+            <input id="questionNumber" name="questionNumber" type="number" min="1" placeholder="1" required>
+          </label>
+
+          <label class="field">
+            <span>Question name</span>
+            <input id="questionName" name="questionName" type="text" placeholder="Two Sum" required>
+          </label>
+
+          <label class="field">
+            <span>Your approach</span>
+            <textarea id="approach" name="approach" rows="7" placeholder="Explain the strategy you used..." required></textarea>
+          </label>
+
+          <div class="actions">
+            <button type="submit" id="submitButton">Save to Mongo</button>
+            <button type="button" id="resetButton" class="ghost">Reset</button>
+          </div>
+        </form>
+
+        <div id="formStatus" class="status" aria-live="polite"></div>
+      </section>
+
+      <section class="panel logs-panel">
+        <div class="panel-header row">
+          <div>
+            <p class="panel-kicker">Saved logs</p>
+            <h2>Recent entries</h2>
+          </div>
+          <button type="button" id="refreshButton" class="ghost compact">Refresh</button>
+        </div>
+
+        <div id="logsMeta" class="logs-meta">Loading logs...</div>
+        <div id="logsList" class="logs-list"></div>
+      </section>
+
+      <section class="panel detail-panel">
+        <div class="panel-header">
+          <p class="panel-kicker">Selected record</p>
+          <h2>Log detail</h2>
+        </div>
+
+        <div id="detailEmpty" class="empty-state">
+          Select a saved log to inspect the exact document coming back from the backend.
+        </div>
+
+        <article id="detailCard" class="detail-card hidden">
+          <div class="detail-grid">
+            <div>
+              <p class="detail-label">Question</p>
+              <h3 id="detailQuestion">-</h3>
+            </div>
+            <div>
+              <p class="detail-label">Source</p>
+              <p id="detailSource">-</p>
+            </div>
+            <div>
+              <p class="detail-label">Slug</p>
+              <p id="detailSlug">-</p>
+            </div>
+            <div>
+              <p class="detail-label">Submitted from</p>
+              <p id="detailSubmittedFrom">-</p>
+            </div>
+            <div>
+              <p class="detail-label">Created at</p>
+              <p id="detailCreatedAt">-</p>
+            </div>
+            <div>
+              <p class="detail-label">Mongo id</p>
+              <p id="detailId" class="mono">-</p>
+            </div>
+          </div>
+
+          <div class="approach-block">
+            <p class="detail-label">Approach</p>
+            <pre id="detailApproach"></pre>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
