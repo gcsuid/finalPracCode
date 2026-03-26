@@ -1,41 +1,20 @@
-# LeetCode Problem Logger
+# Problem Log CRUD
 
-This project is a simple no-auth prototype for logging LeetCode problems into MongoDB Atlas.
+This project is a simple CRUD app for saving problem-solving notes into `db.json`.
 
-## Current flow
+## Fields stored
 
-1. Start the Node backend.
-2. Open the vanilla JS frontend in the browser.
-3. Enter:
-   - `questionNumber`
-   - `questionName`
-   - `approach`
-4. Submit the form.
-5. The backend validates the problem number/title against LeetCode and stores the log in MongoDB.
+Each entry stores:
 
-## Tech used
+- `questionNumber`
+- `questionName`
+- `approach`
+- `createdAt`
+- `updatedAt`
 
-- Node.js
-- Express
-- MongoDB Atlas
-- Mongoose
-- Vanilla HTML/CSS/JS
+The backend automatically adds the date and time whenever an entry is created or updated.
 
-## Project setup
-
-The app reads configuration from `.env`.
-
-Current required values:
-
-```env
-PORT=5000
-MONGO_URI=your-mongodb-atlas-uri
-JWT_SECRET=any-random-string
-```
-
-Note: `JWT_SECRET` is currently unused in the no-auth flow, but it still exists in `.env` from the earlier backend setup.
-
-## How to start
+## Start the app
 
 Install dependencies if needed:
 
@@ -43,37 +22,45 @@ Install dependencies if needed:
 npm install
 ```
 
-Start the app:
+Run the server:
 
 ```bash
 node index.js
 ```
 
-You should see output similar to:
+You should see:
 
 ```text
-MongoDB Connected
-Server started on port 5000
+Server started on port 8081
+Storage mode: db.json
 ```
 
-Then open:
+Open in the browser:
 
 ```text
-http://localhost:5000
+http://localhost:8081
 ```
 
-## How to use the frontend
+## Frontend flow
 
-On the page:
+1. Enter `questionNumber`
+2. Enter `questionName`
+3. Enter `approach`
+4. Press `Enter` in the form or click `Save entry`
+5. The backend writes the entry to `db.json`
 
-1. Enter a valid LeetCode problem number.
-2. Enter the exact LeetCode problem name matching that number.
-3. Enter your approach.
-4. Click `Save to Mongo`.
+To edit an entry:
 
-If the number/title pair is valid, the entry is saved to MongoDB and appears in the logs panel.
+1. Click a saved entry in the list
+2. Update the values in the form
+3. Click `Update entry`
 
-## API endpoints
+To delete an entry:
+
+1. Click a saved entry
+2. Click `Delete`
+
+## API
 
 ### Health
 
@@ -81,53 +68,40 @@ If the number/title pair is valid, the entry is saved to MongoDB and appears in 
 GET /health
 ```
 
-### Create problem log
+### Create
 
 ```http
 POST /api/problems
-Content-Type: application/json
 ```
-
-Body:
 
 ```json
 {
   "questionNumber": 1,
   "questionName": "Two Sum",
-  "approach": "Use a hash map to store complements."
+  "approach": "Used a hash map."
 }
 ```
 
-### List all logs
+### Read all
 
 ```http
 GET /api/problems
 ```
 
-### Get one log
+### Read one
 
 ```http
 GET /api/problems/:id
 ```
 
-## Optional CLI flow
+### Update
 
-There is also a CLI logger:
-
-```bash
-node cli.js
+```http
+PUT /api/problems/:id
 ```
 
-It prompts for:
+### Delete
 
-- question number
-- question name
-- approach
-
-Then it inserts the log directly into MongoDB.
-
-## Notes
-
-- There is no authentication right now.
-- Older MongoDB records from previous versions may still contain legacy fields like `description` or `user`.
-- New records created through the current backend use the latest no-auth structure.
+```http
+DELETE /api/problems/:id
+```

@@ -6,10 +6,13 @@ const state = {
 const healthStatus = document.getElementById('healthStatus');
 const logsMeta = document.getElementById('logsMeta');
 const logsList = document.getElementById('logsList');
+const historyList = document.getElementById('historyList');
 const formStatus = document.getElementById('formStatus');
 const problemForm = document.getElementById('problemForm');
+const editingId = document.getElementById('editingId');
 const submitButton = document.getElementById('submitButton');
 const resetButton = document.getElementById('resetButton');
+const deleteButton = document.getElementById('deleteButton');
 const refreshButton = document.getElementById('refreshButton');
 const detailEmpty = document.getElementById('detailEmpty');
 const detailCard = document.getElementById('detailCard');
@@ -69,11 +72,9 @@ function renderDetail(log) {
   detailEmpty.classList.add('hidden');
   detailCard.classList.remove('hidden');
   document.getElementById('detailQuestion').textContent = `${log.questionNumber}. ${log.questionName}`;
-  document.getElementById('detailSource').textContent = log.source;
-  document.getElementById('detailSlug').textContent = log.titleSlug;
-  document.getElementById('detailSubmittedFrom').textContent = log.submittedFrom || 'api';
+  document.getElementById('detailId').textContent = log.id;
   document.getElementById('detailCreatedAt').textContent = formatDate(log.createdAt);
-  document.getElementById('detailId').textContent = log._id;
+  document.getElementById('detailUpdatedAt').textContent = formatDate(log.updatedAt);
   document.getElementById('detailApproach').textContent = log.approach;
 }
 
@@ -82,31 +83,46 @@ function renderLogs() {
 
   if (!state.logs.length) {
     logsList.innerHTML = '<div class="empty-state">No logs yet. Create your first problem entry from the form.</div>';
+    historyList.innerHTML = '<div class="empty-state">No history yet. Save an entry to see the full running log.</div>';
     renderDetail(null);
     return;
   }
 
   if (!state.selectedId) {
-    state.selectedId = state.logs[0]._id;
+    state.selectedId = state.logs[0].id;
   }
 
   logsList.innerHTML = state.logs.map((log) => `
-    <button class="log-card${log._id === state.selectedId ? ' active' : ''}" data-id="${log._id}" type="button">
+    <button class="log-card${log.id === state.selectedId ? ' active' : ''}" data-id="${log.id}" type="button">
       <div class="log-top">
         <p class="log-title">${escapeHtml(log.questionNumber)}. ${escapeHtml(log.questionName)}</p>
-        <span class="pill">${escapeHtml(log.source)}</span>
+        <span class="pill">saved</span>
       </div>
       <p class="log-approach">${escapeHtml(truncate(log.approach, 110))}</p>
       <div class="log-meta">
-        <span class="eyebrow">${escapeHtml(log.titleSlug)}</span>
+        <span class="eyebrow">updated ${escapeHtml(formatDate(log.updatedAt))}</span>
         <span class="eyebrow">${escapeHtml(formatDate(log.createdAt))}</span>
       </div>
     </button>
   `).join('');
 
-  const selected = state.logs.find((log) => log._id === state.selectedId) || state.logs[0];
-  state.selectedId = selected._id;
+  const selected = state.logs.find((log) => log.id === state.selectedId) || state.logs[0];
+  state.selectedId = selected.id;
   renderDetail(selected);
+
+  historyList.innerHTML = state.logs.map((log) => `
+    <article class="history-item">
+      <div class="history-head">
+        <h3 class="history-title">${escapeHtml(log.questionNumber)}. ${escapeHtml(log.questionName)}</h3>
+        <span class="pill">logged</span>
+      </div>
+      <div class="history-time">
+        <span>Created: ${escapeHtml(formatDate(log.createdAt))}</span>
+        <span>Updated: ${escapeHtml(formatDate(log.updatedAt))}</span>
+      </div>
+      <pre class="history-approach">${escapeHtml(log.approach)}</pre>
+    </article>
+  `).join('');
 }
 
 async function fetchLogs(preserveSelection = true) {
@@ -114,21 +130,34 @@ async function fetchLogs(preserveSelection = true) {
   const response = await fetch('/api/problems');
   const logs = await readJson(response);
   state.logs = logs;
-  state.selectedId = previousSelection && logs.some((log) => log._id === previousSelection)
+  state.selectedId = previousSelection && logs.some((log) => log.id === previousSelection)
     ? previousSelection
-    : logs[0]?._id || null;
+    : logs[0]?.id || null;
   renderLogs();
 }
 
 async function fetchLogDetail(id) {
   const response = await fetch(`/api/problems/${id}`);
   const log = await readJson(response);
-  state.selectedId = log._id;
+  state.selectedId = log.id;
   renderLogs();
   renderDetail(log);
+  editingId.value = log.id;
+  problemForm.questionNumber.value = log.questionNumber;
+  problemForm.questionName.value = log.questionName;
+  problemForm.approach.value = log.approach;
+  submitButton.textContent = 'Update entry';
+  deleteButton.classList.remove('hidden');
 }
 
-async function createProblemLog(event) {
+function resetForm() {
+  problemForm.reset();
+  editingId.value = '';
+  submitButton.textContent = 'Save entry';
+  deleteButton.classList.add('hidden');
+}
+
+async function saveProblem(event) {
   event.preventDefault();
 
   const formData = new FormData(problemForm);
@@ -138,27 +167,55 @@ async function createProblemLog(event) {
     approach: String(formData.get('approach')).trim()
   };
 
+  const currentId = editingId.value;
+  const url = currentId ? `/api/problems/${currentId}` : '/api/problems';
+  const method = currentId ? 'PUT' : 'POST';
+
   submitButton.disabled = true;
-  setFormStatus('Saving to MongoDB...');
+  setFormStatus(currentId ? 'Updating entry...' : 'Saving entry...');
 
   try {
-    const response = await fetch('/api/problems', {
-      method: 'POST',
+    const response = await fetch(url, {
+      method,
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
     });
 
-    const created = await readJson(response);
-    problemForm.reset();
-    setFormStatus(`Saved ${created.questionNumber}. ${created.questionName}`, 'success');
+    const saved = await readJson(response);
+    resetForm();
+    setFormStatus(`${currentId ? 'Updated' : 'Saved'} ${saved.questionNumber}. ${saved.questionName}`, 'success');
     await fetchLogs(false);
-    await fetchLogDetail(created._id);
+    await fetchLogDetail(saved.id);
   } catch (error) {
     setFormStatus(error.message, 'error');
   } finally {
     submitButton.disabled = false;
+  }
+}
+
+async function deleteProblem() {
+  if (!editingId.value) {
+    return;
+  }
+
+  deleteButton.disabled = true;
+  setFormStatus('Deleting entry...');
+
+  try {
+    const response = await fetch(`/api/problems/${editingId.value}`, {
+      method: 'DELETE'
+    });
+    await readJson(response);
+    resetForm();
+    state.selectedId = null;
+    await fetchLogs(false);
+    setFormStatus('Entry deleted', 'success');
+  } catch (error) {
+    setFormStatus(error.message, 'error');
+  } finally {
+    deleteButton.disabled = false;
   }
 }
 
@@ -175,11 +232,12 @@ logsList.addEventListener('click', async (event) => {
   }
 });
 
-problemForm.addEventListener('submit', createProblemLog);
+problemForm.addEventListener('submit', saveProblem);
 resetButton.addEventListener('click', () => {
-  problemForm.reset();
+  resetForm();
   setFormStatus('');
 });
+deleteButton.addEventListener('click', deleteProblem);
 refreshButton.addEventListener('click', async () => {
   try {
     await fetchLogs();
@@ -191,6 +249,7 @@ refreshButton.addEventListener('click', async () => {
 
 async function boot() {
   await loadHealth();
+  healthStatus.textContent = 'db.json ready';
 
   try {
     await fetchLogs();

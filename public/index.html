@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LeetCode Logger</title>
+  <title>Problem Log CRUD</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -13,29 +13,30 @@
   <div class="page-shell">
     <header class="hero">
       <div class="hero-copy">
-        <p class="eyebrow">Vanilla JS + MongoDB Atlas</p>
-        <h1>Log LeetCode problems directly into your backend.</h1>
+        <p class="eyebrow">Vanilla JS + db.json</p>
+        <h1>Track the problems you solve in a small local CRUD app.</h1>
         <p class="hero-text">
-          This screen uses the currently implemented no-auth API. Enter a problem number,
-          the exact LeetCode title, and your approach. The backend validates the number/name pair
-          and stores the log in MongoDB.
+          Enter the problem number, name, and your approach. The backend writes each entry into
+          <code>db.json</code> and automatically saves the created and updated date-time.
         </p>
       </div>
       <div class="hero-card">
-        <div class="stat-label">Backend status</div>
+        <div class="stat-label">Storage</div>
         <div class="stat-value" id="healthStatus">Checking...</div>
-        <p class="stat-caption">Health endpoint and problem list are loaded from the running Node server.</p>
+        <p class="stat-caption">Everything here runs on the local Node server with file-backed storage.</p>
       </div>
     </header>
 
     <main class="layout">
       <section class="panel form-panel">
         <div class="panel-header">
-          <p class="panel-kicker">Create log</p>
-          <h2>Add a problem</h2>
+          <p class="panel-kicker">Create or edit</p>
+          <h2>Problem entry</h2>
         </div>
 
         <form id="problemForm" class="problem-form">
+          <input id="editingId" name="editingId" type="hidden">
+
           <label class="field">
             <span>Question number</span>
             <input id="questionNumber" name="questionNumber" type="number" min="1" placeholder="1" required>
@@ -52,8 +53,9 @@
           </label>
 
           <div class="actions">
-            <button type="submit" id="submitButton">Save to Mongo</button>
-            <button type="button" id="resetButton" class="ghost">Reset</button>
+            <button type="submit" id="submitButton">Save entry</button>
+            <button type="button" id="resetButton" class="ghost">Clear</button>
+            <button type="button" id="deleteButton" class="ghost danger hidden">Delete</button>
           </div>
         </form>
 
@@ -64,7 +66,7 @@
         <div class="panel-header row">
           <div>
             <p class="panel-kicker">Saved logs</p>
-            <h2>Recent entries</h2>
+            <h2>Saved problems</h2>
           </div>
           <button type="button" id="refreshButton" class="ghost compact">Refresh</button>
         </div>
@@ -80,7 +82,7 @@
         </div>
 
         <div id="detailEmpty" class="empty-state">
-          Select a saved log to inspect the exact document coming back from the backend.
+          Select an entry to inspect or edit the exact data stored in <code>db.json</code>.
         </div>
 
         <article id="detailCard" class="detail-card hidden">
@@ -90,24 +92,16 @@
               <h3 id="detailQuestion">-</h3>
             </div>
             <div>
-              <p class="detail-label">Source</p>
-              <p id="detailSource">-</p>
-            </div>
-            <div>
-              <p class="detail-label">Slug</p>
-              <p id="detailSlug">-</p>
-            </div>
-            <div>
-              <p class="detail-label">Submitted from</p>
-              <p id="detailSubmittedFrom">-</p>
+              <p class="detail-label">Entry id</p>
+              <p id="detailId" class="mono">-</p>
             </div>
             <div>
               <p class="detail-label">Created at</p>
               <p id="detailCreatedAt">-</p>
             </div>
             <div>
-              <p class="detail-label">Mongo id</p>
-              <p id="detailId" class="mono">-</p>
+              <p class="detail-label">Updated at</p>
+              <p id="detailUpdatedAt">-</p>
             </div>
           </div>
 
@@ -118,6 +112,17 @@
         </article>
       </section>
     </main>
+
+    <section class="panel history-panel">
+      <div class="panel-header">
+        <p class="panel-kicker">Full history</p>
+        <h2>Every logged problem</h2>
+      </div>
+
+      <div id="historyList" class="history-list">
+        <div class="empty-state">No history yet. Save an entry to see the full running log.</div>
+      </div>
+    </section>
   </div>
 
   <script src="/app.js" defer></script>

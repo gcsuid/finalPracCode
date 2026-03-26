@@ -1,61 +1,96 @@
-const problemMetadataService = require('../services/problemMetadataService');
 const problemStore = require('../services/problemStore');
 
-exports.logProblem = async (req, res) => {
-  const { questionNumber, questionName, approach } = req.body;
+function validatePayload(body) {
+  const questionNumber = Number(body.questionNumber);
+  const questionName = String(body.questionName || '').trim();
+  const approach = String(body.approach || '').trim();
 
-  if (!questionNumber || !questionName || !approach) {
-    return res.status(400).json({
-      msg: 'Please provide questionNumber, questionName, and approach'
-    });
+  if (!Number.isInteger(questionNumber) || questionNumber <= 0) {
+    return 'questionNumber must be a positive integer';
+  }
+
+  if (!questionName) {
+    return 'questionName is required';
+  }
+
+  if (!approach) {
+    return 'approach is required';
+  }
+
+  return null;
+}
+
+exports.createProblem = async (req, res) => {
+  const validationError = validatePayload(req.body);
+
+  if (validationError) {
+    return res.status(400).json({ msg: validationError });
   }
 
   try {
-    const problemDetails = await problemMetadataService.validateProblem({
-      questionNumber,
-      questionName
-    });
-
-    const payload = {
-      questionNumber: Number(problemDetails.questionNumber),
-      questionName: problemDetails.questionName,
-      titleSlug: problemDetails.titleSlug,
-      approach,
-      source: problemDetails.source || 'leetcode',
-      submittedFrom: 'api'
-    };
-
-    const savedLog = await problemStore.createProblemLog(payload);
-
-    res.status(201).json(savedLog);
+    const savedProblem = await problemStore.createProblem(req.body);
+    res.status(201).json(savedProblem);
   } catch (error) {
-    console.error('Error in logProblem controller:', error.message);
-    const statusCode = error.statusCode || 500;
-    res.status(statusCode).json({ msg: error.message || 'Server Error while logging problem' });
+    console.error('Error in createProblem controller:', error.message);
+    res.status(500).json({ msg: 'Server error while creating problem log' });
   }
 };
 
 exports.listProblems = async (req, res) => {
   try {
-    const logs = await problemStore.listProblemLogs();
-    res.json(logs);
+    const problems = await problemStore.listProblems();
+    res.json(problems);
   } catch (error) {
     console.error('Error in listProblems controller:', error.message);
     res.status(500).json({ msg: 'Server error while fetching problem logs' });
   }
 };
 
-exports.getProblemLog = async (req, res) => {
+exports.getProblem = async (req, res) => {
   try {
-    const log = await problemStore.getProblemLogById(req.params.id);
+    const problem = await problemStore.getProblemById(req.params.id);
 
-    if (!log) {
+    if (!problem) {
       return res.status(404).json({ msg: 'Problem log not found' });
     }
 
-    res.json(log);
+    res.json(problem);
   } catch (error) {
-    console.error('Error in getProblemLog controller:', error.message);
+    console.error('Error in getProblem controller:', error.message);
     res.status(500).json({ msg: 'Server error while fetching problem log' });
+  }
+};
+
+exports.updateProblem = async (req, res) => {
+  const validationError = validatePayload(req.body);
+
+  if (validationError) {
+    return res.status(400).json({ msg: validationError });
+  }
+
+  try {
+    const updatedProblem = await problemStore.updateProblem(req.params.id, req.body);
+    if (!updatedProblem) {
+      return res.status(404).json({ msg: 'Problem log not found' });
+    }
+
+    res.json(updatedProblem);
+  } catch (error) {
+    console.error('Error in updateProblem controller:', error.message);
+    res.status(500).json({ msg: 'Server error while updating problem log' });
+  }
+};
+
+exports.deleteProblem = async (req, res) => {
+  try {
+    const deleted = await problemStore.deleteProblem(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ msg: 'Problem log not found' });
+    }
+
+    res.json({ msg: 'Problem log deleted' });
+  } catch (error) {
+    console.error('Error in deleteProblem controller:', error.message);
+    res.status(500).json({ msg: 'Server error while deleting problem log' });
   }
 };

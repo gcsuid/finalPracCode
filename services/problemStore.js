@@ -1,91 +1,92 @@
 const fs = require('fs/promises');
 const path = require('path');
 const crypto = require('crypto');
-const mongoose = require('mongoose');
-const ProblemLog = require('../models/ProblemLog');
 
 const DB_FILE = path.join(__dirname, '..', 'db.json');
 
-function normalizeDoc(doc) {
-  if (!doc) return null;
-  const plain = typeof doc.toObject === 'function' ? doc.toObject() : doc;
-  return {
-    _id: String(plain._id || plain.id),
-    questionNumber: plain.questionNumber,
-    questionName: plain.questionName,
-    titleSlug: plain.titleSlug,
-    approach: plain.approach,
-    source: plain.source,
-    submittedFrom: plain.submittedFrom,
-    createdAt: plain.createdAt,
-    updatedAt: plain.updatedAt
-  };
-}
-
-async function readJsonStore() {
+async function readStore() {
   try {
     const raw = await fs.readFile(DB_FILE, 'utf8');
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed.logs)) {
-      return { logs: [] };
+    if (!Array.isArray(parsed.problems)) {
+      return { problems: [] };
     }
     return parsed;
   } catch (error) {
     if (error.code === 'ENOENT') {
-      return { logs: [] };
+      return { problems: [] };
     }
     throw error;
   }
 }
 
-async function writeJsonStore(payload) {
-  await fs.writeFile(DB_FILE, JSON.stringify(payload, null, 2));
+async function writeStore(store) {
+  await fs.writeFile(DB_FILE, JSON.stringify(store, null, 2));
 }
 
-function isMongoReady() {
-  return mongoose.connection.readyState === 1;
+function normalizeInput(data) {
+  return {
+    questionNumber: Number(data.questionNumber),
+    questionName: String(data.questionName || '').trim(),
+    approach: String(data.approach || '').trim()
+  };
 }
 
-exports.getStorageMode = () => (isMongoReady() ? 'mongo' : 'json');
+exports.getStorageMode = () => 'db.json';
 
-exports.createProblemLog = async (data) => {
-  if (isMongoReady()) {
-    const saved = await ProblemLog.create(data);
-    return normalizeDoc(saved);
-  }
+exports.listProblems = async () => {
+  const store = await readStore();
+  return [...store.problems].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+};
 
-  const store = await readJsonStore();
+exports.getProblemById = async (id) => {
+  const store = await readStore();
+  return store.problems.find((problem) => problem.id === id) || null;
+};
+
+exports.createProblem = async (data) => {
+  const store = await readStore();
   const now = new Date().toISOString();
-  const newLog = {
-    _id: crypto.randomUUID(),
-    ...data,
+  const newProblem = {
+    id: crypto.randomUUID(),
+    ...normalizeInput(data),
     createdAt: now,
     updatedAt: now
   };
-  store.logs.push(newLog);
-  await writeJsonStore(store);
-  return newLog;
+
+  store.problems.push(newProblem);
+  await writeStore(store);
+  return newProblem;
 };
 
-exports.listProblemLogs = async () => {
-  if (isMongoReady()) {
-    const logs = await ProblemLog.find().sort({ createdAt: -1 });
-    return logs.map(normalizeDoc);
+exports.updateProblem = async (id, data) => {
+  const store = await readStore();
+  const index = store.problems.findIndex((problem) => problem.id === id);
+
+  if (index === -1) {
+    return null;
   }
 
-  const store = await readJsonStore();
-  return [...store.logs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const updatedProblem = {
+    ...store.problems[index],
+    ...normalizeInput(data),
+    updatedAt: new Date().toISOString()
+  };
+
+  store.problems[index] = updatedProblem;
+  await writeStore(store);
+  return updatedProblem;
 };
 
-exports.getProblemLogById = async (id) => {
-  if (isMongoReady()) {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return null;
-    }
-    const log = await ProblemLog.findById(id);
-    return normalizeDoc(log);
+exports.deleteProblem = async (id) => {
+  const store = await readStore();
+  const index = store.problems.findIndex((problem) => problem.id === id);
+
+  if (index === -1) {
+    return false;
   }
 
-  const store = await readJsonStore();
-  return store.logs.find((log) => log._id === id) || null;
+  store.problems.splice(index, 1);
+  await writeStore(store);
+  return true;
 };
