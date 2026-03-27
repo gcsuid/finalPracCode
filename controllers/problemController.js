@@ -1,4 +1,4 @@
-const problemStore = require('../services/problemStore');
+const problemService = require('../services/problemService');
 
 function validatePayload(body) {
   const questionNumber = Number(body.questionNumber);
@@ -28,7 +28,7 @@ exports.createProblem = async (req, res) => {
   }
 
   try {
-    const savedProblem = await problemStore.createProblem(req.body);
+    const savedProblem = await problemService.createProblem(req.body);
     res.status(201).json(savedProblem);
   } catch (error) {
     console.error('Error in createProblem controller:', error.message);
@@ -38,7 +38,7 @@ exports.createProblem = async (req, res) => {
 
 exports.listProblems = async (req, res) => {
   try {
-    const problems = await problemStore.listProblems();
+    const problems = await problemService.listProblems();
     res.json(problems);
   } catch (error) {
     console.error('Error in listProblems controller:', error.message);
@@ -48,7 +48,7 @@ exports.listProblems = async (req, res) => {
 
 exports.getProblem = async (req, res) => {
   try {
-    const problem = await problemStore.getProblemById(req.params.id);
+    const problem = await problemService.getProblemById(req.params.id);
 
     if (!problem) {
       return res.status(404).json({ msg: 'Problem log not found' });
@@ -69,7 +69,7 @@ exports.updateProblem = async (req, res) => {
   }
 
   try {
-    const updatedProblem = await problemStore.updateProblem(req.params.id, req.body);
+    const updatedProblem = await problemService.updateProblem(req.params.id, req.body);
     if (!updatedProblem) {
       return res.status(404).json({ msg: 'Problem log not found' });
     }
@@ -83,7 +83,7 @@ exports.updateProblem = async (req, res) => {
 
 exports.deleteProblem = async (req, res) => {
   try {
-    const deleted = await problemStore.deleteProblem(req.params.id);
+    const deleted = await problemService.deleteProblem(req.params.id);
     if (!deleted) {
       return res.status(404).json({ msg: 'Problem log not found' });
     }

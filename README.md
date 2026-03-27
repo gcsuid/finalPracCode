@@ -1,10 +1,17 @@
-# Problem Log CRUD
+# MongoDB Problem Log API
 
-This project is a simple CRUD app for saving problem-solving notes into `db.json`.
+This project is now a simple MongoDB-backed API for logging problems.
 
-## Fields stored
+## What is implemented
 
-Each entry stores:
+- MongoDB connection with Mongoose
+- `problems` collection
+- CRUD endpoints for problem logging
+- Simple smoke test for create, read, update, and delete
+
+## Problem collection
+
+Each problem stores:
 
 - `questionNumber`
 - `questionName`
@@ -12,55 +19,54 @@ Each entry stores:
 - `createdAt`
 - `updatedAt`
 
-The backend automatically adds the date and time whenever an entry is created or updated.
+## Tech used
 
-## Start the app
+- Express
+- Mongoose
 
-Install dependencies if needed:
+## Run the app
 
 ```bash
 npm install
+npm start
 ```
 
-Run the server:
+Default port:
+
+```text
+8081
+```
+
+Health endpoint:
+
+```http
+GET /health
+```
+
+Sample response:
+
+```json
+{
+  "status": "ok",
+  "storage": "mongodb"
+}
+```
+
+## MongoDB configuration
+
+The app currently defaults to this connection string:
+
+```text
+mongodb+srv://user1:Bhagya%402004@cluster0.irqmqzi.mongodb.net/problem-log-app?retryWrites=true&w=majority&appName=Cluster0
+```
+
+You can override it with:
 
 ```bash
-node index.js
+MONGODB_URI=your-own-uri
 ```
 
-You should see:
-
-```text
-Server started on port 8081
-Storage mode: db.json
-```
-
-Open in the browser:
-
-```text
-http://localhost:8081
-```
-
-## Frontend flow
-
-1. Enter `questionNumber`
-2. Enter `questionName`
-3. Enter `approach`
-4. Press `Enter` in the form or click `Save entry`
-5. The backend writes the entry to `db.json`
-
-To edit an entry:
-
-1. Click a saved entry in the list
-2. Update the values in the form
-3. Click `Update entry`
-
-To delete an entry:
-
-1. Click a saved entry
-2. Click `Delete`
-
-## API
+## API endpoints
 
 ### Health
 
@@ -68,40 +74,71 @@ To delete an entry:
 GET /health
 ```
 
-### Create
+### Create a problem
 
 ```http
 POST /api/problems
+Content-Type: application/json
 ```
 
 ```json
 {
   "questionNumber": 1,
   "questionName": "Two Sum",
-  "approach": "Used a hash map."
+  "approach": "Use a hash map to track visited values."
 }
 ```
 
-### Read all
+### Get all problems
 
 ```http
 GET /api/problems
 ```
 
-### Read one
+### Get one problem
 
 ```http
 GET /api/problems/:id
 ```
 
-### Update
+### Update one problem
 
 ```http
 PUT /api/problems/:id
+Content-Type: application/json
 ```
 
-### Delete
+```json
+{
+  "questionNumber": 1,
+  "questionName": "Two Sum",
+  "approach": "Updated explanation."
+}
+```
+
+### Delete one problem
 
 ```http
 DELETE /api/problems/:id
 ```
+
+## Smoke test
+
+After starting the server, you can run:
+
+```bash
+npm run smoke
+```
+
+This test:
+
+- creates a problem
+- lists problems
+- fetches one problem
+- updates the problem
+- deletes the problem
+
+## Notes
+
+- The browser UI is still present and can call the same problem endpoints.
+- The code is intentionally straightforward for easier debugging.

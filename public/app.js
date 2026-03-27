@@ -249,13 +249,15 @@ refreshButton.addEventListener('click', async () => {
 
 async function boot() {
   await loadHealth();
-  healthStatus.textContent = 'db.json ready';
+  if (healthStatus.textContent === 'Connected') {
+    healthStatus.textContent = 'MongoDB ready';
+  }
 
   try {
     await fetchLogs();
   } catch (error) {
-    logsMeta.textContent = 'Failed to load logs';
-    logsList.innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`;
+    logsMeta.textContent = 'Protected API';
+    logsList.innerHTML = `<div class="empty-state">This API now requires JWT authentication. Use Postman with the auth endpoints from the README. Error: ${escapeHtml(error.message)}</div>`;
   }
 }
 

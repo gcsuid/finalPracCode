@@ -1,8 +1,9 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const config = require('./config/env');
 const problemRoutes = require('./routes/problemRoutes');
-const problemStore = require('./services/problemStore');
+const { connectToMongo } = require('./services/mongoService');
 
 const app = express();
 
@@ -12,7 +13,10 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({
+    status: 'ok',
+    storage: 'mongodb'
+  });
 });
 
 app.get('/', (req, res) => {
@@ -22,9 +26,18 @@ app.get('/', (req, res) => {
 // Routes
 app.use('/api/problems', problemRoutes);
 
-const PORT = process.env.PORT || 8081;
+async function startServer() {
+  try {
+    await connectToMongo();
 
-app.listen(PORT, () => {
-  console.log(`Server started on port ${PORT}`);
-  console.log(`Storage mode: ${problemStore.getStorageMode()}`);
-});
+    app.listen(config.port, () => {
+      console.log(`Server started on port ${config.port}`);
+      console.log('Storage mode: mongodb');
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error.message);
+    process.exit(1);
+  }
+}
+
+startServer();
